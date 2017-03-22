@@ -12,9 +12,10 @@ import android.widget.Toast;
  * CameraPreview class that is extended only for the purpose of testing CameraPreview class.
  * This class is added functionality to set arbitrary preview size, and removed automated retry function to start preview on exception.
  */
+@SuppressWarnings("deprecation")
 public class ResizableCameraPreview extends CameraPreview {
     private static boolean DEBUGGING = true;
-    private static final String LOG_TAG = "ResizableCameraPreviewSample";
+    private static final String LOG_TAG = ResizableCameraPreview.class.getSimpleName();
 
     /**
      * @param activity

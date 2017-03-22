@@ -1,8 +1,5 @@
 package net.pikanji.camerapreviewsample;
 
-import java.io.IOException;
-import java.util.List;
-
 import android.app.Activity;
 import android.content.res.Configuration;
 import android.hardware.Camera;
@@ -16,12 +13,16 @@ import android.view.SurfaceView;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
+import java.io.IOException;
+import java.util.List;
+
 /**
  * This class assumes the parent layout is RelativeLayout.LayoutParams.
  */
+@SuppressWarnings("deprecation")
 public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
     private static boolean DEBUGGING = true;
-    private static final String LOG_TAG = "CameraPreviewSample";
+    private static final String LOG_TAG = CameraPreview.class.getSimpleName();
     private static final String CAMERA_PARAM_ORIENTATION = "orientation";
     private static final String CAMERA_PARAM_LANDSCAPE = "landscape";
     private static final String CAMERA_PARAM_PORTRAIT = "portrait";
@@ -73,11 +74,8 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             mCameraId = 0;
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
-            mCamera = Camera.open(mCameraId);
-        } else {
-            mCamera = Camera.open();
-        }
+
+        mCamera = Camera.open(mCameraId);
         Camera.Parameters cameraParams = mCamera.getParameters();
         mPreviewSizeList = cameraParams.getSupportedPreviewSizes();
         mPictureSizeList = cameraParams.getSupportedPictureSizes();
@@ -153,7 +151,6 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     }
     
     /**
-     * @param cameraParams
      * @param portrait
      * @param reqWidth must be the value of the parameter passed in surfaceChanged
      * @param reqHeight must be the value of the parameter passed in surfaceChanged
@@ -371,4 +368,6 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     public void setOnPreviewReady(PreviewReadyCallback cb) {
         mPreviewReadyCallback = cb;
     }
+
+
 }

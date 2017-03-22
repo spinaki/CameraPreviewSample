@@ -1,8 +1,6 @@
 
 package net.pikanji.camerapreviewsample;
 
-import java.util.List;
-
 import android.app.Activity;
 import android.graphics.Rect;
 import android.hardware.Camera;
@@ -15,7 +13,12 @@ import android.widget.RelativeLayout;
 import android.widget.RelativeLayout.LayoutParams;
 import android.widget.Spinner;
 
+import java.util.List;
+
+@SuppressWarnings("deprecation")
 public class CameraPreviewTestActivity extends Activity implements AdapterView.OnItemSelectedListener {
+    private static final String TAG = CameraPreviewTestActivity.class.getSimpleName();
+
     private ResizableCameraPreview mPreview;
     private ArrayAdapter<String> mAdapter;
     private RelativeLayout mLayout;
@@ -56,9 +59,9 @@ public class CameraPreviewTestActivity extends Activity implements AdapterView.O
 
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-        Log.w("CameraPreviewTestActivity", "onItemSelected invoked");
-        Log.w("CameraPreviewTestActivity", "position: " + position);
-        Log.w("CameraPreviewTestActivity", "parent.getId(): " + parent.getId());
+        Log.w(TAG, "onItemSelected invoked");
+        Log.w(TAG, "position: " + position);
+        Log.w(TAG, "parent.getId(): " + parent.getId());
         switch (parent.getId()) {
             case R.id.spinner_size:
             Rect rect = new Rect();
