@@ -64,16 +64,11 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         mHolder.addCallback(this);
         mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
-            if (Camera.getNumberOfCameras() > cameraId) {
-                mCameraId = cameraId;
-            } else {
-                mCameraId = 0;
-            }
+        if (Camera.getNumberOfCameras() > cameraId) {
+            mCameraId = cameraId;
         } else {
             mCameraId = 0;
         }
-
 
         mCamera = Camera.open(mCameraId);
         Camera.Parameters cameraParams = mCamera.getParameters();
