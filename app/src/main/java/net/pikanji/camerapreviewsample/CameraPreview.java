@@ -5,6 +5,8 @@ import android.content.res.Configuration;
 import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
 import android.os.Build;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.util.Log;
 import android.view.Display;
 import android.view.Surface;
@@ -38,6 +40,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     private LayoutMode mLayoutMode;
     private int mCenterPosX = -1;
     private int mCenterPosY;
+    private CameraHandlerThread mThread = null;
     
     PreviewReadyCallback mPreviewReadyCallback = null;
     
@@ -70,11 +73,63 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             mCameraId = 0;
         }
 
-        mCamera = Camera.open(mCameraId);
+//        mCamera = Camera.open(mCameraId);
+        newOpenCamera();
         Camera.Parameters cameraParams = mCamera.getParameters();
         mPreviewSizeList = cameraParams.getSupportedPreviewSizes();
         mPictureSizeList = cameraParams.getSupportedPictureSizes();
     }
+
+    private void oldOpenCamera() {
+        try {
+            mCamera = Camera.open(mCameraId);
+        }
+        catch (RuntimeException e) {
+            Log.e(LOG_TAG, "failed to open front camera");
+        }
+    }
+
+    private void newOpenCamera() {
+        if (mThread == null) {
+            mThread = new CameraHandlerThread(); // handler on the UI thread
+        }
+
+        synchronized (mThread) {
+            mThread.openCamera();
+        }
+    }
+
+    // based on http://stackoverflow.com/questions/18149964/best-use-of-handlerthread-over-other-similar-classes
+    private class CameraHandlerThread extends HandlerThread {
+        Handler mHandler = null;
+
+        CameraHandlerThread() {
+            super("CameraHandlerThread");
+            start();
+            mHandler = new Handler(getLooper());
+        }
+
+        synchronized void notifyCameraOpened() {
+            notify();
+        }
+
+        void openCamera() {
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    oldOpenCamera();
+                    notifyCameraOpened();
+                }
+            });
+            try {
+                wait();
+            }
+            catch (InterruptedException e) {
+                Log.w(LOG_TAG, "wait was interrupted");
+            }
+        }
+    }
+
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
@@ -336,6 +391,9 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         mCamera.stopPreview();
         mCamera.release();
         mCamera = null;
+        if (mThread != null) {
+            mThread.quit();
+        }
     }
 
     public boolean isPortrait() {
