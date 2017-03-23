@@ -6,7 +6,7 @@ import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
 import android.os.Build;
 import android.os.Handler;
-import android.os.HandlerThread;
+import android.os.Looper;
 import android.util.Log;
 import android.view.Display;
 import android.view.Surface;
@@ -40,10 +40,11 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     private LayoutMode mLayoutMode;
     private int mCenterPosX = -1;
     private int mCenterPosY;
-    private CameraHandlerThread mThread = null;
+//    private CameraHandlerThread1 mThread = null;
+    private final CameraHandlerThread cameraHandlerThread;
     
     PreviewReadyCallback mPreviewReadyCallback = null;
-    
+
     public static enum LayoutMode {
         FitToParent, // Scale to the size that no side is larger than the parent
         NoBlank // Scale to the size that no side is smaller than the parent
@@ -59,13 +60,12 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
      */
     protected boolean mSurfaceConfiguring = false;
 
-    public CameraPreview(Activity activity, int cameraId, LayoutMode mode) {
+    public  CameraPreview(Activity activity, int cameraId, LayoutMode mode) {
         super(activity); // Always necessary
+        Log.i(LOG_TAG, "first constructor thread: " + Thread.currentThread().getId());
         mActivity = activity;
         mLayoutMode = mode;
-        mHolder = getHolder();
-        mHolder.addCallback(this);
-        mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+
 
         if (Camera.getNumberOfCameras() > cameraId) {
             mCameraId = cameraId;
@@ -74,61 +74,83 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         }
 
 //        mCamera = Camera.open(mCameraId);
-        newOpenCamera();
-        Camera.Parameters cameraParams = mCamera.getParameters();
-        mPreviewSizeList = cameraParams.getSupportedPreviewSizes();
-        mPictureSizeList = cameraParams.getSupportedPictureSizes();
+//        newOpenCamera();
+//        Camera.Parameters cameraParams = mCamera.getParameters();
+//        mPreviewSizeList = cameraParams.getSupportedPreviewSizes();
+//        mPictureSizeList = cameraParams.getSupportedPictureSizes();
+        Handler uiHandler = new Handler(Looper.getMainLooper());
+        CameraCallback cameraCallback = new CameraCallback() {
+            @Override
+            public void opCameraOpen(Camera camera) {
+                Log.i(LOG_TAG, "inside opCameraOpen");
+                Log.i(LOG_TAG, "in camopen thread : " + Thread.currentThread().getId());
+                mCamera = camera;
+                mHolder = getHolder();
+                mHolder.addCallback(CameraPreview.this);
+                mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+
+                Camera.Parameters cameraParams = mCamera.getParameters();
+                mPreviewSizeList = cameraParams.getSupportedPreviewSizes();
+                mPictureSizeList = cameraParams.getSupportedPictureSizes();
+            }
+            @Override
+            public void onPictureCapture() {
+            }
+        };
+        cameraHandlerThread = new CameraHandlerThread(uiHandler, cameraCallback);
+        cameraHandlerThread.start();
+        cameraHandlerThread.openCamera();
     }
 
-    private void oldOpenCamera() {
-        try {
-            mCamera = Camera.open(mCameraId);
-        }
-        catch (RuntimeException e) {
-            Log.e(LOG_TAG, "failed to open front camera");
-        }
-    }
+//    private void oldOpenCamera() {
+//        try {
+//            mCamera = Camera.open(mCameraId);
+//        }
+//        catch (RuntimeException e) {
+//            Log.e(LOG_TAG, "failed to open front camera");
+//        }
+//    }
 
-    private void newOpenCamera() {
-        if (mThread == null) {
-            mThread = new CameraHandlerThread(); // handler on the UI thread
-        }
-
-        synchronized (mThread) {
-            mThread.openCamera();
-        }
-    }
+//    private void newOpenCamera() {
+//        if (mThread == null) {
+//            mThread = new CameraHandlerThread1(); // handler on the UI thread
+//        }
+//
+//        synchronized (mThread) {
+//            mThread.openCamera();
+//        }
+//    }
 
     // based on http://stackoverflow.com/questions/18149964/best-use-of-handlerthread-over-other-similar-classes
-    private class CameraHandlerThread extends HandlerThread {
-        Handler mHandler = null;
-
-        CameraHandlerThread() {
-            super("CameraHandlerThread");
-            start();
-            mHandler = new Handler(getLooper());
-        }
-
-        synchronized void notifyCameraOpened() {
-            notify();
-        }
-
-        void openCamera() {
-            mHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    oldOpenCamera();
-                    notifyCameraOpened();
-                }
-            });
-            try {
-                wait();
-            }
-            catch (InterruptedException e) {
-                Log.w(LOG_TAG, "wait was interrupted");
-            }
-        }
-    }
+//    private class CameraHandlerThread1 extends HandlerThread {
+//        Handler mHandler = null;
+//
+//        CameraHandlerThread1() {
+//            super("CameraHandlerThread1");
+//            start();
+//            mHandler = new Handler(getLooper());
+//        }
+//
+//        synchronized void notifyCameraOpened() {
+//            notify();
+//        }
+//
+//        void openCamera() {
+//            mHandler.post(new Runnable() {
+//                @Override
+//                public void run() {
+//                    oldOpenCamera();
+//                    notifyCameraOpened();
+//                }
+//            });
+//            try {
+//                wait();
+//            }
+//            catch (InterruptedException e) {
+//                Log.w(LOG_TAG, "wait was interrupted");
+//            }
+//        }
+//    }
 
 
     @Override
@@ -391,8 +413,8 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         mCamera.stopPreview();
         mCamera.release();
         mCamera = null;
-        if (mThread != null) {
-            mThread.quit();
+        if (cameraHandlerThread != null) {
+            cameraHandlerThread.quit();
         }
     }
 
